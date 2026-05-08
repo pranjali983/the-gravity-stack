@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gravity Stack</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #f7f1e3;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            color: #40407a;
+        }
+        canvas {
+            background-color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .info {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 24px; }
+        p { margin: 5px 0; opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+    <div class="info">
+        <h1>Score: <span id="score">0</span></h1>
+        <p>Click to drop the block. Keep the tower balanced!</p>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+
+        canvas.width = 400;
+        canvas.height = 600;
+
+        let score = 0;
+        let gameActive = true;
+        let speed = 3;
+        
+        // The block currently sliding at the top
+        let currentBlock = {
+            x: 0,
+            y: 50,
+            w: 100,
+            h: 30,
+            dir: 1,
+            color: '#ff5252'
+        };
+
+        // Static blocks already placed
+        const stack = [
+            { x: 150, y: 570, w: 100, h: 30, color: '#40407a' }
+        ];
+
+        function draw() {
+            if (!gameActive) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the stack
+            stack.forEach(block => {
+                ctx.fillStyle = block.color;
+                ctx.fillRect(block.x, block.y, block.w, block.h);
+            });
+
+            // Draw and move the sliding block
+            ctx.fillStyle = currentBlock.color;
+            ctx.fillRect(currentBlock.x, currentBlock.y, currentBlock.w, currentBlock.h);
+
+            currentBlock.x += speed * currentBlock.dir;
+            if (currentBlock.x + currentBlock.w > canvas.width || currentBlock.x < 0) {
+                currentBlock.dir *= -1;
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        canvas.addEventListener('mousedown', () => {
+            if (!gameActive) return;
+
+            const lastBlock = stack[stack.length - 1];
+            const drift = currentBlock.x - lastBlock.x;
+            
+            // Calculate overlap
+            if (Math.abs(drift) >= currentBlock.w) {
+                gameActive = false;
+                alert("Tower Toppled! Final Score: " + score);
+                location.reload();
+                return;
+            }
+
+            // Chop the block to the size of the overlap
+            const newWidth = currentBlock.w - Math.abs(drift);
+            const newX = drift > 0 ? currentBlock.x : lastBlock.x;
+
+            // Place block
+            stack.push({
+                x: newX,
+                y: lastBlock.y - 30,
+                w: newWidth,
+                h: 30,
+                color: `hsl(${score * 20 + 200}, 70%, 60%)`
+            });
+
+            // Move camera up if stack gets too high
+            if (stack.length > 10) {
+                stack.forEach(b => b.y += 30);
+            } else {
+                currentBlock.y = lastBlock.y - 60;
+            }
+
+            // Prepare next block
+            score++;
+            scoreEl.innerText = score;
+            speed += 0.2; // Slowly get faster
+            currentBlock.w = newWidth;
+            currentBlock.x = 0;
+        });
+
+        draw();
+    </script>
+</body>
+</html>
